@@ -44,7 +44,23 @@ flutter run -d macos     # 或 windows / linux / android / ios
 
 快捷键：⌘/Ctrl + Enter 运行当前小程序。
 
-小程序保存在应用支持目录的 `polyrun/applets.json`。库页面可以导入、导出，也可以直接打开一个源文件。
+库里的小程序记在应用支持目录的 `polyrun/applets.json`，那是本机数据，不是程序包。程序包只有 `.poly` 一种。库页面点「导入」，选择本地 `.poly` 文件就会载入一个小程序；其它后缀直接拒绝，也不能把 `.py`、`.js` 之类的源文件当成程序包打开。导出当前小程序时也只写成 `.poly`。
+
+`.poly` 内容是一份 JSON：
+
+```json
+{
+  "format": "poly",
+  "version": 1,
+  "name": "问候",
+  "language": "python",
+  "source": "print(input())\n",
+  "stdin": "你好\n",
+  "args": ""
+}
+```
+
+`language` 是语言 id，例如 `python`、`cpp`、`javascript`。
 
 ## 下载构建
 

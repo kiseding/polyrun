@@ -268,18 +268,19 @@ class AppController extends ChangeNotifier {
     _scheduleSave();
   }
 
-  Future<int> importApplets(List<Applet> incoming) async {
-    final known = {for (final applet in applets) applet.id};
-    var added = 0;
-    for (final applet in incoming) {
-      if (known.add(applet.id)) {
-        applets.add(applet);
-        added++;
-      }
-    }
+  Future<Applet> importPackage(Applet incoming) async {
+    final applet = incoming.copyWith(
+      id: newAppletId(),
+      pinned: false,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    applets.add(applet);
+    selectedId = applet.id;
+    editorEpoch++;
     notifyListeners();
     await flush();
-    return added;
+    return applet;
   }
 
   Future<void> updateSettings(AppSettings next) async {

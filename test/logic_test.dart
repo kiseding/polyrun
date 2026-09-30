@@ -6,6 +6,7 @@ import 'package:polyrun/src/languages.dart';
 import 'package:polyrun/src/local_runner.dart';
 import 'package:polyrun/src/models.dart';
 import 'package:polyrun/src/piston.dart';
+import 'package:polyrun/src/poly_package.dart';
 import 'package:polyrun/src/recipes.dart';
 import 'package:polyrun/src/store.dart';
 
@@ -73,6 +74,45 @@ void main() {
     expect(loaded.single.name, '示例');
     expect(loaded.single.stdin, '你好');
     expect((await store.loadSettings()).timeoutSeconds, 12);
+  });
+
+  test('only .poly packages load', () {
+    final applet = createApplet(
+      kLanguageById['python']!,
+      name: '问候',
+      source: 'print(1)\n',
+      stdin: '你好',
+    );
+    applet.args = '--hi';
+    final text = encodePolyPackage(applet);
+    final loaded = decodePolyPackage(text, filename: r'C:\box\问候.POLY');
+    expect(loaded.name, '问候');
+    expect(loaded.languageId, 'python');
+    expect(loaded.source, 'print(1)\n');
+    expect(loaded.stdin, '你好');
+    expect(loaded.args, '--hi');
+    expect(isPolyPackageName('a.poly'), isTrue);
+    expect(isPolyPackageName('a.JSON'), isFalse);
+    expect(isPolyPackageName('main.py'), isFalse);
+    expect(polyFileName('问候'), '问候.poly');
+
+    expect(
+      () => decodePolyPackage(text, filename: 'applets.json'),
+      throwsA(isA<PolyPackageException>()),
+    );
+    expect(
+      () => decodePolyPackage('{"format":"polyrun"}', filename: 'a.poly'),
+      throwsA(
+        predicate<PolyPackageException>((e) => e.message.contains('不是有效')),
+      ),
+    );
+    expect(
+      () => decodePolyPackage(
+        '{"format":"poly","version":2,"name":"a","language":"python","source":""}',
+        filename: 'a.poly',
+      ),
+      throwsA(predicate<PolyPackageException>((e) => e.message.contains('版本'))),
+    );
   });
 
   test('local bash recipe prints', () async {

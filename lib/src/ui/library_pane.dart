@@ -1,12 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../languages.dart';
-import '../models.dart';
+import '../poly_package.dart';
 import '../theme.dart';
 import 'language_picker.dart';
 import 'scope.dart';
@@ -92,9 +90,8 @@ class _LibraryPaneState extends State<LibraryPane> {
                   tooltip: '更多',
                   onSelected: (value) => _onMenu(context, value),
                   itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'open', child: Text('打开源文件')),
-                    PopupMenuItem(value: 'import', child: Text('导入小程序')),
-                    PopupMenuItem(value: 'export', child: Text('导出小程序')),
+                    PopupMenuItem(value: 'import', child: Text('导入程序包')),
+                    PopupMenuItem(value: 'export', child: Text('导出程序包')),
                   ],
                 ),
               ],
@@ -129,6 +126,11 @@ class _LibraryPaneState extends State<LibraryPane> {
                   onPressed: () => _create(context),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('新建'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => _import(context),
+                  icon: const Icon(Icons.file_open_outlined, size: 18),
+                  label: const Text('导入'),
                 ),
               ],
             ),
@@ -192,30 +194,10 @@ class _LibraryPaneState extends State<LibraryPane> {
   }
 
   Future<void> _onMenu(BuildContext context, String value) async {
-    final app = AppScope.of(context);
     try {
       switch (value) {
-        case 'open':
-          await _openSource(context);
-          break;
         case 'import':
-          final file = await openFile(
-            acceptedTypeGroups: const [
-              XTypeGroup(label: 'json', extensions: ['json']),
-            ],
-          );
-          if (file == null || !context.mounted) return;
-          final decoded = jsonDecode(await file.readAsString());
-          if (decoded is! List) {
-            if (context.mounted) showPolySnack(context, '文件不是小程序列表');
-            return;
-          }
-          final incoming = decoded
-              .whereType<Map>()
-              .map((item) => Applet.fromJson(item.cast<String, Object?>()))
-              .toList();
-          final added = await app.importApplets(incoming);
-          if (context.mounted) showPolySnack(context, '导入 $added 个');
+          await _import(context);
           break;
         case 'export':
           await _export(context);
@@ -226,31 +208,52 @@ class _LibraryPaneState extends State<LibraryPane> {
     }
   }
 
-  Future<void> _openSource(BuildContext context) async {
-    final file = await openFile();
+  Future<void> _import(BuildContext context) async {
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(label: '万语盒程序包', extensions: ['poly']),
+      ],
+    );
     if (file == null || !context.mounted) return;
-    final source = await file.readAsString();
+    if (!isPolyPackageName(file.name)) {
+      showPolySnack(context, '只支持 .poly 程序包');
+      return;
+    }
+    final applet = decodePolyPackage(
+      await file.readAsString(),
+      filename: file.name,
+    );
     if (!context.mounted) return;
-    var lang = languageForFilename(file.name);
-    lang ??= await pickLanguage(context);
-    if (lang == null || !context.mounted) return;
-    AppScope.of(context).create(lang, name: file.name, source: source);
+    final loaded = await AppScope.of(context).importPackage(applet);
+    if (context.mounted) showPolySnack(context, '已载入 ${loaded.name}');
   }
 
   Future<void> _export(BuildContext context) async {
     final app = AppScope.of(context);
-    final text = const JsonEncoder.withIndent('  ')
-        .convert(app.applets.map((a) => a.toJson()).toList());
+    final applet = app.current;
+    if (applet == null) {
+      showPolySnack(context, '先选一个小程序');
+      return;
+    }
+    final text = encodePolyPackage(applet);
     try {
       final location = await getSaveLocation(
-        suggestedName: 'polyrun-applets.json',
+        suggestedName: polyFileName(applet.name),
+        acceptedTypeGroups: const [
+          XTypeGroup(label: '万语盒程序包', extensions: ['poly']),
+        ],
       );
       if (location == null) return;
-      await File(location.path).writeAsString(text);
-      if (context.mounted) showPolySnack(context, '已导出');
+      final path = isPolyPackageName(location.path)
+          ? location.path
+          : '${location.path}.poly';
+      await File(path).writeAsString(text);
+      if (context.mounted) showPolySnack(context, '已导出 .poly');
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: text));
-      if (context.mounted) showPolySnack(context, '这个平台不能直接存文件，已复制 JSON');
+      if (context.mounted) {
+        showPolySnack(context, '这个平台不能直接存文件，已复制程序包，请保存为 .poly');
+      }
     }
   }
 }
