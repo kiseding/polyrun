@@ -1,0 +1,88 @@
+import 'package:re_highlight/languages/awk.dart';
+import 'package:re_highlight/languages/bash.dart';
+import 'package:re_highlight/languages/basic.dart';
+import 'package:re_highlight/languages/brainfuck.dart';
+import 'package:re_highlight/languages/c.dart';
+import 'package:re_highlight/languages/clojure.dart';
+import 'package:re_highlight/languages/cpp.dart';
+import 'package:re_highlight/languages/crystal.dart';
+import 'package:re_highlight/languages/csharp.dart';
+import 'package:re_highlight/languages/d.dart';
+import 'package:re_highlight/languages/dart.dart';
+import 'package:re_highlight/languages/elixir.dart';
+import 'package:re_highlight/languages/erlang.dart';
+import 'package:re_highlight/languages/fortran.dart';
+import 'package:re_highlight/languages/fsharp.dart';
+import 'package:re_highlight/languages/go.dart';
+import 'package:re_highlight/languages/groovy.dart';
+import 'package:re_highlight/languages/haskell.dart';
+import 'package:re_highlight/languages/java.dart';
+import 'package:re_highlight/languages/javascript.dart';
+import 'package:re_highlight/languages/julia.dart';
+import 'package:re_highlight/languages/kotlin.dart';
+import 'package:re_highlight/languages/lisp.dart';
+import 'package:re_highlight/languages/lua.dart';
+import 'package:re_highlight/languages/nim.dart';
+import 'package:re_highlight/languages/objectivec.dart';
+import 'package:re_highlight/languages/ocaml.dart';
+import 'package:re_highlight/languages/perl.dart';
+import 'package:re_highlight/languages/php.dart';
+import 'package:re_highlight/languages/plaintext.dart';
+import 'package:re_highlight/languages/powershell.dart';
+import 'package:re_highlight/languages/prolog.dart';
+import 'package:re_highlight/languages/python.dart';
+import 'package:re_highlight/languages/r.dart';
+import 'package:re_highlight/languages/ruby.dart';
+import 'package:re_highlight/languages/rust.dart';
+import 'package:re_highlight/languages/scala.dart';
+import 'package:re_highlight/languages/scheme.dart';
+import 'package:re_highlight/languages/sql.dart';
+import 'package:re_highlight/languages/swift.dart';
+import 'package:re_highlight/languages/typescript.dart';
+import 'package:re_highlight/re_highlight.dart';
+
+Mode modeFor(String key) => _modes[key] ?? langPlaintext;
+
+final Map<String, Mode> _modes = {
+  'python': langPython,
+  'javascript': langJavascript,
+  'typescript': langTypescript,
+  'dart': langDart,
+  'php': langPhp,
+  'ruby': langRuby,
+  'perl': langPerl,
+  'lua': langLua,
+  'r': langR,
+  'julia': langJulia,
+  'bash': langBash,
+  'powershell': langPowershell,
+  'awk': langAwk,
+  'sql': langSql,
+  'c': langC,
+  'cpp': langCpp,
+  'rust': langRust,
+  'go': langGo,
+  'nim': langNim,
+  'd': langD,
+  'fortran': langFortran,
+  'objectivec': langObjectivec,
+  'java': langJava,
+  'kotlin': langKotlin,
+  'scala': langScala,
+  'groovy': langGroovy,
+  'clojure': langClojure,
+  'csharp': langCsharp,
+  'fsharp': langFsharp,
+  'swift': langSwift,
+  'haskell': langHaskell,
+  'ocaml': langOcaml,
+  'elixir': langElixir,
+  'erlang': langErlang,
+  'lisp': langLisp,
+  'scheme': langScheme,
+  'prolog': langProlog,
+  'crystal': langCrystal,
+  'basic': langBasic,
+  'brainfuck': langBrainfuck,
+  'plaintext': langPlaintext,
+};
