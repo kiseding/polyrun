@@ -109,8 +109,26 @@ jobs:
           path: polyrun-macos.zip
           retention-days: 14
 
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.4"
+          cache: true
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
+      - run: chmod +x tool/self_sign_ipa.sh && tool/self_sign_ipa.sh build/ios/iphoneos/Runner.app polyrun-ios.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polyrun-ios
+          path: polyrun-ios.ipa
+          retention-days: 14
+
   release:
-    needs: [test, android, linux, windows, macos]
+    needs: [test, android, linux, windows, macos, ios]
     if: always() && github.ref == 'refs/heads/main' && needs.test.result == 'success' && needs.android.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -133,9 +151,9 @@ jobs:
             echo '- `polyrun-linux-x64.tar.gz`：解压后运行 `./polyrun`。'
             echo '- `polyrun-windows-x64.zip`：解压后运行 `polyrun.exe`。'
             echo '- `polyrun-macos.zip`：未做正式签名。被系统拦住时执行 `xattr -dr com.apple.quarantine polyrun.app`。'
+            echo '- `polyrun-ios.ipa`：构建机现场生成的自签名证书；系统不信任时退回 ad-hoc。不是 Apple 开发者证书，系统安装器不会装。可用巨魔，或再用轻松签 / Sideloadly / AltStore 换成你的 Apple ID。'
             echo
-            echo 'iOS 安装包需要 Apple 证书，这里没有，所以不构建。'
-            echo '某桌面平台这次失败的话，对应文件会缺，安卓包仍然会更新。'
+            echo '某个平台这次失败的话，对应文件会缺，安卓包仍然会更新。'
           } > notes.md
           if gh release view continuous >/dev/null 2>&1; then
             gh release upload continuous dist/* --clobber

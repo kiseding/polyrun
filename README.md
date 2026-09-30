@@ -56,8 +56,7 @@ flutter run -d macos     # 或 windows / linux / android / ios
 | `polyrun-linux-x64.tar.gz` | 解压后运行 `./polyrun` |
 | `polyrun-windows-x64.zip` | 解压后运行 `polyrun.exe` |
 | `polyrun-macos.zip` | 没有正式签名。被系统拦住时执行 `xattr -dr com.apple.quarantine polyrun.app` |
-
-iOS 安装包需要 Apple 开发者证书，仓库里没有，所以 CI 不打 ipa。
+| `polyrun-ios.ipa` | 构建机现场自签名；系统不信任时用 ad-hoc。不是 Apple 开发者证书，系统安装器不会装。可用巨魔，或再用轻松签 / Sideloadly / AltStore 换成你的 Apple ID |
 
 ## 安全
 
