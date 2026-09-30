@@ -46,6 +46,19 @@ flutter run -d macos     # 或 windows / linux / android / ios
 
 小程序保存在应用支持目录的 `polyrun/applets.json`。库页面可以导入、导出，也可以直接打开一个源文件。
 
+## 下载构建
+
+推到 `main` 之后，GitHub Actions 会跑测试并编译能直接运行的包，更新到预发布 [continuous](https://github.com/kiseding/polyrun/releases/tag/continuous)。同一次构建的文件也挂在 Actions 里，保留 14 天。
+
+| 文件 | 用法 |
+| --- | --- |
+| `polyrun-android.apk` | 安卓直接安装。调试证书签名，可以装，不能上架 Play |
+| `polyrun-linux-x64.tar.gz` | 解压后运行 `./polyrun` |
+| `polyrun-windows-x64.zip` | 解压后运行 `polyrun.exe` |
+| `polyrun-macos.zip` | 没有正式签名。被系统拦住时执行 `xattr -dr com.apple.quarantine polyrun.app` |
+
+iOS 安装包需要 Apple 开发者证书，仓库里没有，所以 CI 不打 ipa。
+
 ## 安全
 
 本机引擎就是 `Process.start`，权限和你自己的用户一样，**没有沙箱**。不要运行不信任的代码。需要隔离时用 Piston，并把引擎设成「仅远程」。

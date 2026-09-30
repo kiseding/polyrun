@@ -1,0 +1,145 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.4"
+          cache: true
+      - run: flutter pub get
+      - run: flutter test
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.4"
+          cache: true
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - run: cp build/app/outputs/flutter-apk/app-release.apk polyrun-android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polyrun-android
+          path: polyrun-android.apk
+          retention-days: 14
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev g++
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.4"
+          cache: true
+      - run: flutter config --enable-linux-desktop
+      - run: flutter pub get
+      - run: flutter build linux --release
+      - run: tar -C build/linux/x64/release/bundle -czf polyrun-linux-x64.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polyrun-linux
+          path: polyrun-linux-x64.tar.gz
+          retention-days: 14
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.4"
+          cache: true
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath polyrun-windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polyrun-windows
+          path: polyrun-windows-x64.zip
+          retention-days: 14
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.4"
+          cache: true
+      - run: flutter config --enable-macos-desktop
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - run: |
+          app="build/macos/Build/Products/Release/polyrun.app"
+          codesign --force --deep --sign - "$app"
+          ditto -c -k --keepParent "$app" polyrun-macos.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polyrun-macos
+          path: polyrun-macos.zip
+          retention-days: 14
+
+  release:
+    needs: [test, android, linux, windows, macos]
+    if: always() && github.ref == 'refs/heads/main' && needs.test.result == 'success' && needs.android.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish continuous release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo '提交 `${{ github.sha }}`'
+            echo
+            echo '构建日志：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+            echo
+            echo '- `polyrun-android.apk`：安卓直接安装。调试证书签名，可以装，不能上架 Play。'
+            echo '- `polyrun-linux-x64.tar.gz`：解压后运行 `./polyrun`。'
+            echo '- `polyrun-windows-x64.zip`：解压后运行 `polyrun.exe`。'
+            echo '- `polyrun-macos.zip`：未做正式签名。被系统拦住时执行 `xattr -dr com.apple.quarantine polyrun.app`。'
+            echo
+            echo 'iOS 安装包需要 Apple 证书，这里没有，所以不构建。'
+            echo '某桌面平台这次失败的话，对应文件会缺，安卓包仍然会更新。'
+          } > notes.md
+          if gh release view continuous >/dev/null 2>&1; then
+            gh release upload continuous dist/* --clobber
+            gh release edit continuous --prerelease --title "持续构建" --notes-file notes.md
+          else
+            gh release create continuous dist/* --prerelease --title "持续构建" --notes-file notes.md
+          fi
